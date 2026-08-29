@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { getAdminDb } from "@/lib/firebaseAdmin"
+import { readFirestoreCollection } from "@/lib/firestoreServerBridge"
 import { isMirrorCollection } from "@/lib/mirrorCollections"
 import { COOKIE_NAME } from "@/lib/schoolAuth"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 function isSchoolMirrorAuthenticated(): boolean {
   return cookies().get(COOKIE_NAME)?.value === "1"
@@ -21,20 +24,6 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const db = getAdminDb()
-  if (!db) {
-    return NextResponse.json(
-      { error: "Firebase Admin is not configured on the server." },
-      { status: 503 },
-    )
-  }
-
-  try {
-    const snap = await db.collection(collection).get()
-    const docs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    return NextResponse.json(docs)
-  } catch (error) {
-    console.error(`Mirror API read failed for ${collection}:`, error)
-    return NextResponse.json({ error: "Failed to read Firestore data." }, { status: 500 })
-  }
+  const docs = readFirestoreCollection(collection)
+  return NextResponse.json(docs)
 }
