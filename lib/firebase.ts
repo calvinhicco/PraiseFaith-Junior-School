@@ -8,20 +8,13 @@ import {
   onSnapshot,
   type Firestore,
 } from "firebase/firestore"
+import { getFirebaseWebConfig } from "./firebaseConfig"
 
 let app: FirebaseApp | undefined
 let db: Firestore | undefined
 
 function getConfig() {
-  return {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  }
+  return getFirebaseWebConfig()
 }
 
 export function getDb(): Firestore {
@@ -53,8 +46,11 @@ export function isFirebaseConfigured(): boolean {
 }
 
 export async function getInitial<T>(collectionName: string): Promise<T[]> {
+  const db = tryGetDb()
+  if (!db) return []
+
   try {
-    const snap = await getDocs(collection(getDb(), collectionName))
+    const snap = await getDocs(collection(db, collectionName))
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T)
   } catch (error) {
     console.error(`Error fetching ${collectionName}:`, error)
@@ -63,9 +59,15 @@ export async function getInitial<T>(collectionName: string): Promise<T[]> {
 }
 
 export function subscribe<T>(collectionName: string, cb: (docs: T[]) => void) {
+  const db = tryGetDb()
+  if (!db) {
+    cb([])
+    return () => {}
+  }
+
   try {
     return onSnapshot(
-      collection(getDb(), collectionName),
+      collection(db, collectionName),
       (snap) => {
         cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T))
       },
@@ -85,9 +87,15 @@ export function subscribeDoc<T>(
   docId: string,
   cb: (data: T | null) => void,
 ) {
+  const db = tryGetDb()
+  if (!db) {
+    cb(null)
+    return () => {}
+  }
+
   try {
     return onSnapshot(
-      doc(getDb(), collectionName, docId),
+      doc(db, collectionName, docId),
       (snap) => {
         cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as T) : null)
       },
