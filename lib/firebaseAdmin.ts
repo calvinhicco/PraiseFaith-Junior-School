@@ -10,11 +10,19 @@ const LOCAL_SERVICE_ACCOUNT = path.join(
   "firebase-service-account.json",
 )
 
+function normalizeServiceAccount(raw: Record<string, unknown>): admin.ServiceAccount {
+  return {
+    projectId: String(raw.projectId || raw.project_id || ""),
+    clientEmail: String(raw.clientEmail || raw.client_email || ""),
+    privateKey: String(raw.privateKey || raw.private_key || ""),
+  }
+}
+
 function readServiceAccount(): admin.ServiceAccount | null {
   const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim()
   if (json) {
     try {
-      return JSON.parse(json) as admin.ServiceAccount
+      return normalizeServiceAccount(JSON.parse(json) as Record<string, unknown>)
     } catch (error) {
       console.error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON:", error)
     }
@@ -23,7 +31,9 @@ function readServiceAccount(): admin.ServiceAccount | null {
   const filePath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH?.trim() || LOCAL_SERVICE_ACCOUNT
   if (filePath && fs.existsSync(filePath)) {
     try {
-      return JSON.parse(fs.readFileSync(filePath, "utf8")) as admin.ServiceAccount
+      return normalizeServiceAccount(
+        JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>,
+      )
     } catch (error) {
       console.error(`Could not read service account at ${filePath}:`, error)
     }
@@ -34,18 +44,25 @@ function readServiceAccount(): admin.ServiceAccount | null {
 
 export function getAdminDb(): Firestore | null {
   try {
-    if (!admin.apps.length) {
-      const serviceAccount = readServiceAccount()
-      if (!serviceAccount) return null
-      const projectId =
-        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ||
-        (serviceAccount as { project_id?: string }).project_id
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        ...(projectId ? { projectId } : {}),
-      })
+    const serviceAccount = readServiceAccount()
+    if (!serviceAccount?.clientEmail || !serviceAccount?.privateKey) return null
+
+    const appName = "praisefaith-mirror-admin"
+    const projectId =
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() || serviceAccount.projectId
+
+    const existing = admin.apps.find((app) => app?.name === appName)
+    if (!existing) {
+      admin.initializeApp(
+        {
+          credential: admin.credential.cert(serviceAccount),
+          projectId,
+        },
+        appName,
+      )
     }
-    return admin.firestore()
+
+    return admin.app(appName).firestore()
   } catch (error) {
     console.error("Firebase Admin init failed:", error)
     return null
