@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 Set-Location "e:\Test 6A (with Academic Reports June 2026)\Web Mirror with Academics June 2026"
 
 $vars = @{
@@ -14,9 +14,16 @@ $vars = @{
 
 foreach ($name in $vars.Keys) {
   Write-Host "Updating $name ..."
-  npx vercel env rm $name production --yes 2>$null
-  $value = $vars[$name]
-  $value | npx vercel env add $name production 2>&1
+  npx vercel env rm $name production --yes 2>$null | Out-Null
+  $vars[$name] | npx vercel env add $name production 2>&1 | Out-Null
 }
 
-Write-Host "Done updating Vercel env vars."
+$serviceAccountPath = "e:\Test 6A (with Academic Reports June 2026)\My Students Track + POS Module 3 June 2026\firebase-service-account.json"
+if (Test-Path $serviceAccountPath) {
+  Write-Host "Updating FIREBASE_SERVICE_ACCOUNT_JSON ..."
+  npx vercel env rm FIREBASE_SERVICE_ACCOUNT_JSON production --yes 2>$null | Out-Null
+  Get-Content -Raw $serviceAccountPath | npx vercel env add FIREBASE_SERVICE_ACCOUNT_JSON production 2>&1 | Out-Null
+}
+
+Write-Host "Done. Current production env vars:"
+npx vercel env ls production 2>&1

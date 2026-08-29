@@ -8,7 +8,7 @@ import {
   onSnapshot,
   type Firestore,
 } from "firebase/firestore"
-import { getFirebaseWebConfig } from "./firebaseConfig"
+import { getFirebaseWebConfig, isFirebaseEnvConfigured } from "./firebaseConfig"
 
 let app: FirebaseApp | undefined
 let db: Firestore | undefined
@@ -41,8 +41,7 @@ function tryGetDb(): Firestore | null {
 }
 
 export function isFirebaseConfigured(): boolean {
-  const c = getConfig()
-  return Boolean(c.apiKey && c.projectId)
+  return isFirebaseEnvConfigured()
 }
 
 export async function getInitial<T>(collectionName: string): Promise<T[]> {
