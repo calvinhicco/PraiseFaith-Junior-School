@@ -1,6 +1,6 @@
-# Connect Group Of Schools — Web Portals
+# PraiseFaith Junior School — Web Portals
 
-Parent-facing website and staff financial mirror for **Connect Group Of Schools**, synced from **My Students Track** (Electron desktop app).
+Parent-facing website and staff financial mirror for **PraiseFaith Junior School**, synced from **My Students Track** (Electron desktop app).
 
 ## Portals
 
@@ -20,7 +20,7 @@ Open http://localhost:3000
 
 ## Firebase
 
-The web app and Electron desktop app must share the same Firebase project (`connect-group-of-schools`).
+The web app and Electron desktop app must share the same Firebase project (`praisefaith-junior-school`).
 
 | Variable | Purpose |
 |----------|---------|
@@ -46,7 +46,7 @@ The web app and Electron desktop app must share the same Firebase project (`conn
 
 ## Desktop app (Electron sync)
 
-- Place `firebase-service-account.json` for `connect-group-of-schools` in the Electron app root
+- Place `firebase-service-account.json` for `praisefaith-junior-school` in the Electron app root
 - Set matching `NEXT_PUBLIC_FIREBASE_*` in the desktop app `.env.local`
 - Run Firebase sync after publishing results or updating financial data
 

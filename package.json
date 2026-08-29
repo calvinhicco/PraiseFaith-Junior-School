@@ -1,8 +1,8 @@
 {
-  "name": "connect-group-of-schools-web",
+  "name": "praisefaith-junior-school-web",
   "version": "3.0.0",
   "private": true,
-  "description": "Connect Group Of Schools — parent academic results and school financial mirror synced from My Students Track desktop.",
+  "description": "PraiseFaith Junior School — parent academic results and school financial mirror synced from My Students Track desktop.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

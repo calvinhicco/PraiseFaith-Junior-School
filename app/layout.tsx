@@ -5,7 +5,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"], variable: "--font-geist-sans" })
 
 export const metadata: Metadata = {
-  title: "Connect Group Of Schools — Web Portals",
+  title: "PraiseFaith Junior School — Web Portals",
   description: "Parent academic results and school financial mirror synced from the desktop app.",
 }
 

@@ -39,7 +39,7 @@ export function PortalChooser() {
             </div>
             <h2 className="text-lg font-semibold text-slate-900">School Mirror</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Connect Group Of Schools staff read-only view of students, fees, expenses, and outstanding balances.
+              {SCHOOL_NAME} staff read-only view of students, fees, expenses, and outstanding balances.
             </p>
           </Link>
         </div>
