@@ -71,5 +71,17 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /transferredStudents/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /pendingPromoted/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /salesUsers/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
