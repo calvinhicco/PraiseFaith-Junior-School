@@ -13,30 +13,44 @@ export function DashboardTotals() {
   const [totalOutstanding, setTotalOutstanding] = useState(0)
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<AppSettings | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const load = async () => {
-      const [students, expenses, extraBilling, outstanding] = await Promise.all([
-        getInitial<{ id: string }>("students"),
-        getInitial<{ amount: number; isReversed?: boolean; reversed?: boolean }>("expenses"),
-        getInitial<{ amount: number }>("extraBilling"),
-        getInitial<{ outstandingAmount: number }>("outstandingStudents"),
-      ])
+    let cancelled = false
 
-      setTotalStudents(students.length)
-      setTotalExpenses(
-        expenses.reduce((sum, e) => {
-          if (e.isReversed || e.reversed) return sum
-          return sum + (Number(e.amount) || 0)
-        }, 0),
-      )
-      setTotalExtraBilling(
-        extraBilling.reduce((sum, b) => sum + (Number(b.amount) || 0), 0),
-      )
-      setTotalOutstanding(
-        outstanding.reduce((sum, s) => sum + (Number(s.outstandingAmount) || 0), 0),
-      )
-      setLoading(false)
+    const load = async () => {
+      try {
+        const [students, expenses, extraBilling, outstanding] = await Promise.all([
+          getInitial<{ id: string }>("students"),
+          getInitial<{ amount: number; isReversed?: boolean; reversed?: boolean }>("expenses"),
+          getInitial<{ amount: number }>("extraBilling"),
+          getInitial<{ outstandingAmount: number }>("outstandingStudents"),
+        ])
+
+        if (cancelled) return
+
+        setTotalStudents(students.length)
+        setTotalExpenses(
+          expenses.reduce((sum, e) => {
+            if (e.isReversed || e.reversed) return sum
+            return sum + (Number(e.amount) || 0)
+          }, 0),
+        )
+        setTotalExtraBilling(
+          extraBilling.reduce((sum, b) => sum + (Number(b.amount) || 0), 0),
+        )
+        setTotalOutstanding(
+          outstanding.reduce((sum, s) => sum + (Number(s.outstandingAmount) || 0), 0),
+        )
+        setError(null)
+      } catch (loadError) {
+        console.error("Dashboard totals load failed:", loadError)
+        if (!cancelled) {
+          setError("Could not load dashboard data. Check Firebase configuration and Firestore rules.")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
 
     load()
@@ -64,7 +78,10 @@ export function DashboardTotals() {
       subscribeAppSettings<AppSettings>(setSettings),
     ]
 
-    return () => unsubs.forEach((u) => u())
+    return () => {
+      cancelled = true
+      unsubs.forEach((u) => u())
+    }
   }, [])
 
   const currency = settings?.currency || "$"
@@ -73,6 +90,14 @@ export function DashboardTotals() {
     return (
       <div className="flex h-24 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        {error}
       </div>
     )
   }

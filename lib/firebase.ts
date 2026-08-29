@@ -38,6 +38,15 @@ export function getDb(): Firestore {
   return db
 }
 
+function tryGetDb(): Firestore | null {
+  try {
+    return getDb()
+  } catch (error) {
+    console.error("Firebase is not configured:", error)
+    return null
+  }
+}
+
 export function isFirebaseConfigured(): boolean {
   const c = getConfig()
   return Boolean(c.apiKey && c.projectId)
@@ -96,39 +105,57 @@ export function subscribeDoc<T>(
 const SETTINGS_DOC_IDS = ["app", "appSettings"] as const
 
 export async function fetchAppSettings<T = Record<string, unknown>>(): Promise<T | null> {
-  const db = getDb()
-  for (const id of SETTINGS_DOC_IDS) {
-    const snap = await getDoc(doc(db, "settings", id))
-    if (snap.exists()) return snap.data() as T
+  const db = tryGetDb()
+  if (!db) return null
+
+  try {
+    for (const id of SETTINGS_DOC_IDS) {
+      const snap = await getDoc(doc(db, "settings", id))
+      if (snap.exists()) return snap.data() as T
+    }
+    const all = await getDocs(collection(db, "settings"))
+    if (all.empty) return null
+    return all.docs[0].data() as T
+  } catch (error) {
+    console.error("Error fetching app settings:", error)
+    return null
   }
-  const all = await getDocs(collection(db, "settings"))
-  if (all.empty) return null
-  return all.docs[0].data() as T
 }
 
 export function subscribeAppSettings<T = Record<string, unknown>>(
   cb: (settings: T | null) => void,
 ) {
-  const db = getDb()
-  return onSnapshot(
-    collection(db, "settings"),
-    (snap) => {
-      if (snap.empty) {
-        cb(null)
-        return
-      }
-      for (const id of SETTINGS_DOC_IDS) {
-        const match = snap.docs.find((d) => d.id === id)
-        if (match) {
-          cb(match.data() as T)
+  const db = tryGetDb()
+  if (!db) {
+    cb(null)
+    return () => {}
+  }
+
+  try {
+    return onSnapshot(
+      collection(db, "settings"),
+      (snap) => {
+        if (snap.empty) {
+          cb(null)
           return
         }
-      }
-      cb(snap.docs[0].data() as T)
-    },
-    (error) => {
-      console.error("Error subscribing to settings:", error)
-      cb(null)
-    },
-  )
+        for (const id of SETTINGS_DOC_IDS) {
+          const match = snap.docs.find((d) => d.id === id)
+          if (match) {
+            cb(match.data() as T)
+            return
+          }
+        }
+        cb(snap.docs[0].data() as T)
+      },
+      (error) => {
+        console.error("Error subscribing to settings:", error)
+        cb(null)
+      },
+    )
+  } catch (error) {
+    console.error("Error setting up settings subscription:", error)
+    cb(null)
+    return () => {}
+  }
 }

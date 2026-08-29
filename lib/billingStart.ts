@@ -13,6 +13,10 @@ function parseLocalDate(dateStr?: string): Date | null {
 /** First day of the student's admission month. */
 export function getAdmissionPeriodStart(admissionDate: string | Date): Date {
   const d = typeof admissionDate === "string" ? new Date(admissionDate) : admissionDate
+  if (Number.isNaN(d.getTime())) {
+    const now = new Date()
+    return getStartOfMonth(now.getFullYear(), now.getMonth() + 1)
+  }
   return getStartOfMonth(d.getFullYear(), d.getMonth() + 1)
 }
 
