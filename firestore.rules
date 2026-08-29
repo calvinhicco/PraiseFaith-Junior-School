@@ -1,85 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Web mirror + parent portal read-only access.
+    // Web mirror + parent portal read-only access (same pattern as other schools).
     // Staff login is enforced by the Next.js app (cookie), not Firebase Auth.
-    match /students/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /settings/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /expenses/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /extraBilling/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /outstandingStudents/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /inventories/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /sales/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /assets/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /consumables/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /resourceIssues/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicStudentReports/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicStudentSubjectResults/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicReportCollections/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicReportSubjects/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicReportTeachers/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicSchoolBranding/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /academicTeacherBranding/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /transferredStudents/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /pendingPromoted/{docId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /salesUsers/{docId} {
+    // Desktop sync uses Admin SDK and bypasses these rules entirely.
+    match /{document=**} {
       allow read: if true;
       allow write: if false;
     }
