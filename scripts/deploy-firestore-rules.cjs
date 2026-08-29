@@ -1,18 +1,80 @@
 const fs = require("fs")
 const path = require("path")
-const admin = require("firebase-admin")
+const crypto = require("crypto")
 
 const projectId = "praisefaith-junior-school"
-const keyFile = "C:/Program Files/My Students Track/firebase-service-account.json"
+const keyCandidates = [
+  process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+  path.join(__dirname, "..", "..", "My Students Track + POS Module 3 June 2026", "firebase-service-account.json"),
+  "C:/Users/ChiccoPC/Downloads/praisefaith service key/firebase-service-account.json",
+  "C:/Program Files/My Students Track/firebase-service-account.json",
+].filter(Boolean)
+const keyFile = keyCandidates.find((candidate) => fs.existsSync(candidate))
 const rulesPath = path.join(__dirname, "..", "firestore.rules")
 
-async function deployRules() {
-  const serviceAccount = JSON.parse(fs.readFileSync(keyFile, "utf8"))
-  const credential = admin.credential.cert(serviceAccount)
-  const tokenResult = await credential.getAccessToken()
-  const accessToken = tokenResult.access_token
-  if (!accessToken) throw new Error("Could not obtain access token")
+function base64UrlEncode(value) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")
+}
 
+function signJwt(serviceAccount, scopes) {
+  const now = Math.floor(Date.now() / 1000)
+  const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }))
+  const payload = base64UrlEncode(
+    JSON.stringify({
+      iss: serviceAccount.client_email,
+      sub: serviceAccount.client_email,
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+      scope: scopes.join(" "),
+    }),
+  )
+  const unsigned = `${header}.${payload}`
+  const signature = crypto
+    .createSign("RSA-SHA256")
+    .update(unsigned)
+    .sign(serviceAccount.private_key, "base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")
+  return `${unsigned}.${signature}`
+}
+
+async function getAccessToken(serviceAccount) {
+  const jwt = signJwt(serviceAccount, [
+    "https://www.googleapis.com/auth/cloud-platform",
+    "https://www.googleapis.com/auth/firebase",
+  ])
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  })
+  const body = await res.json()
+  if (!res.ok) {
+    throw new Error(`Token request failed: ${JSON.stringify(body)}`)
+  }
+  return body.access_token
+}
+
+async function deployRules() {
+  if (!keyFile) {
+    throw new Error(`Service account not found. Checked: ${keyCandidates.join(", ")}`)
+  }
+
+  const serviceAccount = JSON.parse(fs.readFileSync(keyFile, "utf8"))
+  if (serviceAccount.project_id !== projectId) {
+    throw new Error(`Service account project_id is ${serviceAccount.project_id}, expected ${projectId}`)
+  }
+
+  const accessToken = await getAccessToken(serviceAccount)
   const rules = fs.readFileSync(rulesPath, "utf8")
 
   const createRes = await fetch(

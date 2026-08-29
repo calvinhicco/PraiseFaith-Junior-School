@@ -4,11 +4,6 @@ import { useEffect, useState, type FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Building2, Loader2, Lock } from "lucide-react"
-import {
-  hasSchoolMirrorSession,
-  setSchoolMirrorSession,
-  verifySchoolMirrorPassword,
-} from "@/lib/schoolAuth"
 import { SCHOOL_NAME } from "@/lib/schoolConfig"
 
 export function SchoolLoginForm() {
@@ -16,29 +11,55 @@ export function SchoolLoginForm() {
   const searchParams = useSearchParams()
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (hasSchoolMirrorSession()) {
-      const next = searchParams.get("next") || "/school"
-      router.replace(next)
-    }
+    fetch("/api/school/session")
+      .then((res) => res.json())
+      .then((data: { authenticated?: boolean }) => {
+        if (data.authenticated) {
+          const next = searchParams.get("next") || "/school"
+          router.replace(next)
+        }
+      })
+      .finally(() => setCheckingSession(false))
   }, [router, searchParams])
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    if (!verifySchoolMirrorPassword(password)) {
-      setError("Incorrect password. Contact your school administrator.")
-      setLoading(false)
-      return
-    }
+    try {
+      const res = await fetch("/api/school/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
 
-    setSchoolMirrorSession()
-    const next = searchParams.get("next") || "/school"
-    router.replace(next)
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Incorrect password. Contact your school administrator.")
+        return
+      }
+
+      const next = searchParams.get("next") || "/school"
+      router.replace(next)
+      router.refresh()
+    } catch {
+      setError("Could not sign in. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      </div>
+    )
   }
 
   return (
@@ -67,6 +88,7 @@ export function SchoolLoginForm() {
             className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             placeholder="Enter mirror password"
             required
+            autoComplete="current-password"
           />
         </div>
 
