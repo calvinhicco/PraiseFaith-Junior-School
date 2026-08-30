@@ -72,7 +72,6 @@ export function subscribe<T>(collectionName: string, cb: (docs: T[]) => void) {
       },
       (error) => {
         console.error(`Error subscribing to ${collectionName}:`, error)
-        cb([])
       },
     )
   } catch (error) {

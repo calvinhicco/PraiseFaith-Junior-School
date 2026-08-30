@@ -42,7 +42,13 @@ export function DashboardTotals() {
         setTotalOutstanding(
           outstanding.reduce((sum, s) => sum + (Number(s.outstandingAmount) || 0), 0),
         )
-        setError(null)
+        if (students.length === 0) {
+          setError(
+            "No synced data loaded yet. Confirm Firebase env vars are set and the desktop app has synced to praisefaith-junior-school.",
+          )
+        } else {
+          setError(null)
+        }
       } catch (loadError) {
         console.error("Dashboard totals load failed:", loadError)
         if (!cancelled) {
