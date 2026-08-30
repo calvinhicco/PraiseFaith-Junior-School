@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverComponentsExternalPackages: ["firebase-admin", "@google-cloud/firestore"],
+    serverComponentsExternalPackages: ["firebase-admin", "@google-cloud/firestore", "google-auth-library"],
   },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

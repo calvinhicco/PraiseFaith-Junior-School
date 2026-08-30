@@ -18,7 +18,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const students = readFirestoreCollection<{ id: string }>("students")
+  const students = await readFirestoreCollection<{ id: string }>("students")
   const student = students.find((entry) => entry.id === params.id) || null
   return NextResponse.json(student)
 }

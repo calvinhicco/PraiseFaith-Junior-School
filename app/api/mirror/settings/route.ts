@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const settingsDocs = readFirestoreCollection<{ id: string }>("settings")
+  const settingsDocs = await readFirestoreCollection<{ id: string }>("settings")
   const appDoc = settingsDocs.find((doc) => doc.id === "app" || doc.id === "appSettings")
   return NextResponse.json(appDoc || settingsDocs[0] || null)
 }
