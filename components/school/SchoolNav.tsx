@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { clearSchoolMirrorSession } from "@/lib/schoolAuth"
 import { Home, Users, Receipt, Package, AlertTriangle, LogOut, Scale, Boxes, Warehouse } from "lucide-react"
 
 const links = [
@@ -19,10 +20,9 @@ export function SchoolNav() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const logout = async () => {
-    await fetch("/api/school/logout", { method: "POST" })
+  const logout = () => {
+    clearSchoolMirrorSession()
     router.replace("/school/login")
-    router.refresh()
   }
 
   return (

@@ -1,34 +1,12 @@
 const COOKIE_NAME = "mts-school-mirror"
-const SESSION_MAX_AGE = 60 * 60 * 12
 
 export function getSchoolMirrorPassword(): string {
-  return (
-    process.env.SCHOOL_MIRROR_PASSWORD ||
-    process.env.NEXT_PUBLIC_SCHOOL_MIRROR_PASSWORD ||
-    "SuperAdmin123!"
-  ).trim()
+  return process.env.NEXT_PUBLIC_SCHOOL_MIRROR_PASSWORD || "SuperAdmin123!"
 }
 
-export function verifySchoolMirrorPassword(password: string): boolean {
-  return password.trim() === getSchoolMirrorPassword()
-}
-
-export function getSchoolMirrorCookieOptions() {
-  return {
-    name: COOKIE_NAME,
-    value: "1" as const,
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-  }
-}
-
-/** @deprecated Client cookie helpers kept for backwards compatibility during migration */
 export function setSchoolMirrorSession(): void {
   if (typeof document === "undefined") return
-  document.cookie = `${COOKIE_NAME}=1; path=/; max-age=${SESSION_MAX_AGE}; SameSite=Lax`
+  document.cookie = `${COOKIE_NAME}=1; path=/; max-age=${60 * 60 * 12}; SameSite=Lax`
 }
 
 export function clearSchoolMirrorSession(): void {
@@ -41,4 +19,8 @@ export function hasSchoolMirrorSession(): boolean {
   return document.cookie.split(";").some((c) => c.trim().startsWith(`${COOKIE_NAME}=1`))
 }
 
-export { COOKIE_NAME, SESSION_MAX_AGE }
+export function verifySchoolMirrorPassword(password: string): boolean {
+  return password === getSchoolMirrorPassword()
+}
+
+export { COOKIE_NAME }

@@ -1,50 +1,16 @@
 import {
-  fetchAppSettings as fetchFirebaseAppSettings,
+  fetchAppSettings,
   getInitial as getFirebaseInitial,
   subscribe as subscribeFirebase,
-  subscribeAppSettings as subscribeFirebaseAppSettings,
+  subscribeAppSettings,
   subscribeDoc,
 } from "./firebase"
-import {
-  loadViaMirrorApi,
-  subscribeSettingsViaMirrorApi,
-  subscribeStudentViaMirrorApi,
-  subscribeViaMirrorApi,
-} from "./mirrorApi"
-
-function isSchoolMirrorRoute(): boolean {
-  return typeof window !== "undefined" && window.location.pathname.startsWith("/school")
-}
-
-async function loadSchoolCollection<T>(collectionName: string): Promise<T[]> {
-  const fromClient = await getFirebaseInitial<T>(collectionName)
-  if (fromClient.length > 0) return fromClient
-
-  if (isSchoolMirrorRoute()) {
-    return loadViaMirrorApi<T>(collectionName)
-  }
-
-  return fromClient
-}
 
 export async function getInitial<T>(collectionName: string): Promise<T[]> {
-  if (isSchoolMirrorRoute()) {
-    return loadSchoolCollection<T>(collectionName)
-  }
   return getFirebaseInitial<T>(collectionName)
 }
 
 export function subscribe<T>(collectionName: string, cb: (docs: T[]) => void) {
-  if (isSchoolMirrorRoute()) {
-    const unsubApi = subscribeViaMirrorApi<T>(collectionName, cb)
-    const unsubFirebase = subscribeFirebase<T>(collectionName, (docs) => {
-      if (docs.length > 0) cb(docs)
-    })
-    return () => {
-      unsubApi()
-      unsubFirebase()
-    }
-  }
   return subscribeFirebase<T>(collectionName, cb)
 }
 
@@ -53,46 +19,7 @@ export function subscribeOne<T>(
   id: string,
   cb: (doc: T | null) => void,
 ) {
-  if (isSchoolMirrorRoute() && collectionName === "students") {
-    const unsubApi = subscribeStudentViaMirrorApi<T>(id, cb)
-    const unsubFirebase = subscribeDoc<T>(collectionName, id, (doc) => {
-      if (doc) cb(doc)
-    })
-    return () => {
-      unsubApi()
-      unsubFirebase()
-    }
-  }
   return subscribeDoc<T>(collectionName, id, cb)
 }
 
-export async function fetchAppSettings<T = Record<string, unknown>>(): Promise<T | null> {
-  const fromClient = await fetchFirebaseAppSettings<T>()
-  if (fromClient) return fromClient
-
-  if (isSchoolMirrorRoute()) {
-    try {
-      const res = await fetch("/api/mirror/settings", { credentials: "include" })
-      if (res.ok) return (await res.json()) as T | null
-    } catch {
-      /* fall through */
-    }
-  }
-  return null
-}
-
-export function subscribeAppSettings<T = Record<string, unknown>>(
-  cb: (settings: T | null) => void,
-) {
-  if (isSchoolMirrorRoute()) {
-    const unsubApi = subscribeSettingsViaMirrorApi<T>(cb)
-    const unsubFirebase = subscribeFirebaseAppSettings<T>((settings) => {
-      if (settings) cb(settings)
-    })
-    return () => {
-      unsubApi()
-      unsubFirebase()
-    }
-  }
-  return subscribeFirebaseAppSettings<T>(cb)
-}
+export { fetchAppSettings, subscribeAppSettings }
