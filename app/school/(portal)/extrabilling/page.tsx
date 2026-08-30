@@ -1,43 +1,43 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { format } from "date-fns"
-import { Loader2, Package } from "lucide-react"
+import { FileText, Loader2, Package } from "lucide-react"
+import { GroceriesMirrorView } from "@/components/school/GroceriesMirrorView"
+import {
+  findGroceriesPage,
+  getGroceriesData,
+  isGroceriesPage,
+  sumStandardExtraBillingCollected,
+} from "@/lib/groceriesBilling"
 import { getInitial, subscribe } from "@/lib/realtime"
-
-interface ExtraBilling {
-  id: string
-  studentId?: string
-  studentName?: string
-  description?: string
-  amount: number
-  date: string
-  dueDate?: string
-  paid?: boolean
-  paidDate?: string
-  notes?: string
-}
+import type { ExtraBillingPage } from "@/types/school"
 
 export default function SchoolExtraBillingPage() {
-  const [billingItems, setBillingItems] = useState<ExtraBilling[]>([])
+  const [pages, setPages] = useState<ExtraBillingPage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getInitial<ExtraBilling>("extraBilling")
-        setBillingItems(data)
+        const data = await getInitial<ExtraBillingPage>("extraBilling")
+        setPages(data)
       } catch {
-        setError("Failed to load extra billing records.")
+        setError("Failed to load extra billing pages.")
       } finally {
         setLoading(false)
       }
     }
     load()
-    const unsub = subscribe<ExtraBilling>("extraBilling", setBillingItems)
+    const unsub = subscribe<ExtraBillingPage>("extraBilling", setPages)
     return () => unsub()
   }, [])
+
+  const groceriesPage = useMemo(() => findGroceriesPage(pages), [pages])
+  const groceries = useMemo(() => getGroceriesData(groceriesPage), [groceriesPage])
+  const standardPages = useMemo(() => pages.filter((page) => !isGroceriesPage(page)), [pages])
 
   if (loading) {
     return (
@@ -62,33 +62,63 @@ export default function SchoolExtraBillingPage() {
         Extra Billing
       </h1>
 
+      <GroceriesMirrorView groceries={groceries} compact />
+
       <div className="space-y-3">
-        {billingItems.map((item) => (
-          <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-medium text-slate-900">
-                  {item.studentName || "Student"} — {item.description || "Extra billing"}
-                </p>
-                {item.notes && <p className="text-sm text-slate-500">{item.notes}</p>}
+        <h2 className="text-lg font-semibold text-slate-900">Billing pages</h2>
+        {standardPages.map((page) => {
+          const entries = (page.entries || []).filter((entry) => !entry.deleted)
+          const collected = entries.reduce(
+            (sum, entry) =>
+              sum +
+              (entry.payments || []).reduce(
+                (paymentSum, payment) => paymentSum + (Number(payment.amount) || 0),
+                0,
+              ),
+            0,
+          )
+
+          return (
+            <div key={page.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="flex items-center gap-2 font-medium text-slate-900">
+                    <FileText className="h-4 w-4 text-brand-600" />
+                    {page.name}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {entries.length} entries · ${collected.toLocaleString(undefined, { minimumFractionDigits: 2 })} collected
+                    {page.createdAt && (
+                      <> · Created {format(new Date(page.createdAt), "MMM dd, yyyy")}</>
+                    )}
+                  </p>
+                </div>
               </div>
-              <p className="font-semibold text-slate-900">
-                ${Number(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </p>
             </div>
-            <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
-              <span>Date: {item.date ? format(new Date(item.date), "MMM dd, yyyy") : "—"}</span>
-              {item.dueDate && (
-                <span>Due: {format(new Date(item.dueDate), "MMM dd, yyyy")}</span>
-              )}
-              <span>{item.paid ? "Paid" : "Unpaid"}</span>
-            </div>
-          </div>
-        ))}
-        {billingItems.length === 0 && (
-          <p className="text-sm text-slate-500">No extra billing records synced yet.</p>
+          )
+        })}
+
+        {standardPages.length === 0 && (
+          <p className="text-sm text-slate-500">No standard extra billing pages synced yet.</p>
+        )}
+
+        {standardPages.length > 0 && (
+          <p className="text-sm text-slate-500">
+            Total collected across billing pages: $
+            {sumStandardExtraBillingCollected(pages).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </p>
         )}
       </div>
+
+      <p className="text-xs text-slate-500">
+        Manage groceries and billing pages in the desktop app — this mirror updates automatically after sync.
+        {" "}
+        <Link href="/school/extrabilling/groceries" className="text-brand-600 hover:underline">
+          Open groceries checklist
+        </Link>
+      </p>
     </div>
   )
 }

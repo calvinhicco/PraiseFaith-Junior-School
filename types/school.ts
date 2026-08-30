@@ -82,14 +82,46 @@ export interface ExtraBillingPayment {
 }
 
 export interface ExtraBillingEntry {
+  id?: string
+  studentName?: string
+  purpose?: string
   deleted?: boolean
   payments?: ExtraBillingPayment[]
+}
+
+export type GroceriesPeriodType = "month" | "term"
+
+export interface GroceryRequirementItem {
+  id: string
+  name: string
+  unit: string
+  qtyRequired: number
+  consumableId?: string
+}
+
+export interface GroceryStudentChecklist {
+  studentId: string
+  studentName: string
+  className: string
+  brought: Record<string, boolean>
+}
+
+export interface GroceriesPageData {
+  periodType: GroceriesPeriodType
+  periodLabel: string
+  periodYear: number
+  periodValue: number
+  requirements: GroceryRequirementItem[]
+  checklists: GroceryStudentChecklist[]
 }
 
 export interface ExtraBillingPage {
   id: string
   name: string
+  pageKind?: "standard" | "groceries"
   entries?: ExtraBillingEntry[]
+  groceries?: GroceriesPageData
+  createdAt?: string
 }
 
 export interface OutstandingStudent {

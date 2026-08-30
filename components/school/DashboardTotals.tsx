@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { Loader2, Users } from "lucide-react"
 import { getInitial, subscribe, subscribeAppSettings } from "@/lib/realtime"
+import { sumStandardExtraBillingCollected } from "@/lib/groceriesBilling"
 import { formatMoney } from "@/lib/calculations"
-import type { AppSettings } from "@/types/school"
+import type { AppSettings, ExtraBillingPage } from "@/types/school"
 
 export function DashboardTotals() {
   const [totalStudents, setTotalStudents] = useState(0)
@@ -16,10 +17,10 @@ export function DashboardTotals() {
 
   useEffect(() => {
     const load = async () => {
-      const [students, expenses, extraBilling, outstanding] = await Promise.all([
+      const [students, expenses, extraBillingPages, outstanding] = await Promise.all([
         getInitial<{ id: string }>("students"),
         getInitial<{ amount: number; isReversed?: boolean; reversed?: boolean }>("expenses"),
-        getInitial<{ amount: number }>("extraBilling"),
+        getInitial<ExtraBillingPage>("extraBilling"),
         getInitial<{ outstandingAmount: number }>("outstandingStudents"),
       ])
 
@@ -30,9 +31,7 @@ export function DashboardTotals() {
           return sum + (Number(e.amount) || 0)
         }, 0),
       )
-      setTotalExtraBilling(
-        extraBilling.reduce((sum, b) => sum + (Number(b.amount) || 0), 0),
-      )
+      setTotalExtraBilling(sumStandardExtraBillingCollected(extraBillingPages))
       setTotalOutstanding(
         outstanding.reduce((sum, s) => sum + (Number(s.outstandingAmount) || 0), 0),
       )
@@ -51,10 +50,8 @@ export function DashboardTotals() {
           }, 0),
         )
       }),
-      subscribe<{ amount: number }>("extraBilling", (docs) => {
-        setTotalExtraBilling(
-          docs.reduce((sum, b) => sum + (Number(b.amount) || 0), 0),
-        )
+      subscribe<ExtraBillingPage>("extraBilling", (docs) => {
+        setTotalExtraBilling(sumStandardExtraBillingCollected(docs))
       }),
       subscribe<{ outstandingAmount: number }>("outstandingStudents", (docs) => {
         setTotalOutstanding(
