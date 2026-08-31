@@ -10,33 +10,77 @@ import {
 } from "firebase/firestore"
 import { SCHOOL_NAME } from "./schoolConfig"
 
-/** Strip quotes/commas often pasted from .env files into Vercel env values. */
 function envVar(name: string, fallback: string): string {
   const raw = process.env[name]
-  if (!raw) return fallback
+  if (!raw || !raw.trim()) return fallback
   return raw.replace(/^["'\s]+|["',\s]+$/g, "")
 }
 
-const firebaseConfig = {
-  apiKey: envVar("NEXT_PUBLIC_FIREBASE_API_KEY", "AIzaSyBCpajdj01oLa4HRalaUpo2ODOvyI2rqfM"),
-  authDomain: envVar(
-    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-    "praisefaith-junior-school.firebaseapp.com",
-  ),
-  projectId: envVar("NEXT_PUBLIC_FIREBASE_PROJECT_ID", "praisefaith-junior-school"),
-  storageBucket: envVar(
-    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
-    "praisefaith-junior-school.firebasestorage.app",
-  ),
-  messagingSenderId: envVar("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", "95874105499"),
-  appId: envVar("NEXT_PUBLIC_FIREBASE_APP_ID", "1:95874105499:web:589ff457a9302eb41ec63e"),
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-}
-
-export const firebaseProjectId = firebaseConfig.projectId
-/** Must match Vercel env / desktop sync project for PraiseFaith Junior School. */
+/** PraiseFaith only — leftover Vercel env from another school is ignored. */
 export const expectedFirebaseProjectId = "praisefaith-junior-school"
 export const firebaseSchoolLabel = SCHOOL_NAME
+
+const SCHOOL_FIREBASE = {
+  apiKey: "AIzaSyBCpajdj01oLa4HRalaUpo2ODOvyI2rqfM",
+  authDomain: "praisefaith-junior-school.firebaseapp.com",
+  projectId: expectedFirebaseProjectId,
+  storageBucket: "praisefaith-junior-school.firebasestorage.app",
+  messagingSenderId: "95874105499",
+  appId: "1:95874105499:web:589ff457a9302eb41ec63e",
+  measurementId: "G-THV8L2GVQS",
+}
+
+const BLOCKED_FIREBASE_PROJECT_IDS = [
+  "connect-group-of-schools",
+  "bubbles-web-mirror",
+  "my-students-mirror",
+  "my-students-track-staff-online",
+  "jan-2026-webmirror-a1",
+  "school-29-march-26",
+]
+
+export const blockedSchoolNamePatterns = [
+  "connect group",
+  "bubble beginnings",
+  "madam boss",
+  "sunrise",
+  "grace junior",
+]
+
+function resolveFirebaseConfig() {
+  const fromEnv = {
+    apiKey: envVar("NEXT_PUBLIC_FIREBASE_API_KEY", SCHOOL_FIREBASE.apiKey),
+    authDomain: envVar("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", SCHOOL_FIREBASE.authDomain),
+    projectId: envVar("NEXT_PUBLIC_FIREBASE_PROJECT_ID", SCHOOL_FIREBASE.projectId),
+    storageBucket: envVar("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", SCHOOL_FIREBASE.storageBucket),
+    messagingSenderId: envVar(
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+      SCHOOL_FIREBASE.messagingSenderId,
+    ),
+    appId: envVar("NEXT_PUBLIC_FIREBASE_APP_ID", SCHOOL_FIREBASE.appId),
+    measurementId: envVar(
+      "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID",
+      SCHOOL_FIREBASE.measurementId,
+    ),
+  }
+
+  if (
+    BLOCKED_FIREBASE_PROJECT_IDS.includes(fromEnv.projectId) ||
+    fromEnv.projectId !== expectedFirebaseProjectId
+  ) {
+    console.error(
+      `Unexpected Firebase project "${fromEnv.projectId}". ` +
+        `Expected "${expectedFirebaseProjectId}". Using built-in PraiseFaith config.`,
+    )
+    return { ...SCHOOL_FIREBASE }
+  }
+
+  return fromEnv
+}
+
+const firebaseConfig = resolveFirebaseConfig()
+
+export const firebaseProjectId = firebaseConfig.projectId
 
 let app: FirebaseApp | undefined
 let db: Firestore | undefined
