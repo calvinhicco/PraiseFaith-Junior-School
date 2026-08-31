@@ -256,3 +256,11 @@ export function buildYearToDateTotals(
     throughMonthName: getBalanceSheetMonthName(lastMonth),
   }
 }
+
+export function getCurrentYearMonths(): { month: number; label: string }[] {
+  const year = new Date().getFullYear()
+  return Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    label: `${getShortMonthName(i + 1)} ${year}`,
+  }))
+}
