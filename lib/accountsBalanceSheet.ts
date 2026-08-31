@@ -24,8 +24,12 @@ const MONTH_NAMES = [
 
 const SHORT_MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-function getMonthName(month: number): string {
+export function getBalanceSheetMonthName(month: number): string {
   return MONTH_NAMES[month - 1] || "Unknown"
+}
+
+function getMonthName(month: number): string {
+  return getBalanceSheetMonthName(month)
 }
 
 function getShortMonthName(month: number): string {
@@ -215,5 +219,40 @@ export function buildMonthlyBalanceSheet(
     expenses: expenseLines,
     totalExpenses,
     netBalance: roundAmount(totalIncome - totalExpenses),
+  }
+}
+
+/** Sum of monthly balance-sheet income and expenses from January through `throughMonth` (1–12). */
+export function buildYearToDateTotals(
+  year: number,
+  throughMonth: number,
+  students: Student[],
+  settings: AppSettings,
+  expenses: Expense[],
+  sales: SaleRecord[],
+  extraBillingPages: ExtraBillingPage[],
+): { totalIncome: number; totalExpenses: number; throughMonthName: string } {
+  const lastMonth = Math.min(12, Math.max(1, throughMonth))
+  let totalIncome = 0
+  let totalExpenses = 0
+
+  for (let month = 1; month <= lastMonth; month++) {
+    const sheet = buildMonthlyBalanceSheet(
+      year,
+      month,
+      students,
+      settings,
+      expenses,
+      sales,
+      extraBillingPages,
+    )
+    totalIncome += sheet.totalIncome
+    totalExpenses += sheet.totalExpenses
+  }
+
+  return {
+    totalIncome: roundAmount(totalIncome),
+    totalExpenses: roundAmount(totalExpenses),
+    throughMonthName: getBalanceSheetMonthName(lastMonth),
   }
 }
